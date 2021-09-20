@@ -1,134 +1,597 @@
-
-
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
 
 <head>
 
-  <meta charset="UTF-8">
-  
-  <title>SpeechSynthesis Demo</title>
-  
-  <link rel='stylesheet' href='https://unpkg.com/element-ui/lib/theme-chalk/index.css'>
-  
-<style>
-.speech-wrapper {
-  padding-top: 10px;
-}
-</style>
+    <meta charset="UTF-8">
 
-  <script>
-  window.console = window.console || function(t) {};
-</script>
 
-  
-  
-  <script>
-  if (document.location.search.match(/type=embed/gi)) {
-    window.parent.postMessage("resize", "*");
-  }
-</script>
+
+    <title>Text Reader</title>
+    <link href="https://getbootstrap.com/docs/5.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+    <link href="https://getbootstrap.com/docs/5.1/assets/css/docs.css" rel="stylesheet">
+
+    <link rel='stylesheet' href='https://unpkg.com/element-ui/lib/theme-chalk/index.css'>
+
+    <style>
+        * {
+            margin: 0px;
+        }
+
+        /* .reader {
+  width: 800px;
+  margin: 10px auto;
+} */
+        .reader .reader-text {
+            padding: 10px;
+            border: 1px solid #000;
+            background-color: #fffbf6;
+            text-align: left;
+            line-height: 50px;
+            margin: 0 auto;
+            width: 100%;
+            height: 500px;
+            overflow: auto;
+        }
+
+        .reader .reader-text .reader-text-title {
+            font-size: 14px;
+        }
+
+        .reader .reader-text .reader-text-title .author {
+            text-align: right;
+            font-size: 12px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .reader .reader-text .reader-text-item {
+            transition: all 0.2s ease;
+        }
+
+        .reader .reader-text .reader-text-item.speak {
+            background-color: #f39c12;
+            border-radius: 4px;
+        }
+
+        .reader .reader-oprations {
+            padding: 10px 0;
+            text-align: center;
+        }
+    </style>
+
+    <script>
+        window.console = window.console || function (t) { };
+    </script>
+
+
+
+    <script>
+        if (document.location.search.match(/type=embed/gi)) {
+            window.parent.postMessage("resize", "*");
+        }
+    </script>
 
 
 </head>
 
-<body translate="no" >
-  <div id="app">
-    <div class="speech-wrapper" element-loading-text="加载语言包..." v-loading="!voiceData.length">
-        <el-form v-model="queryParams" label-width="90px" label-position="left" size="mini">
-            <el-form-item label="文字:">
-                <el-input v-model="queryParams.text" type="textarea" :autosize="{ minRows: 2, maxRows: 6}" placeholder="想听啥？" size="mini"></el-input>
-            </el-form-item>
+<body translate="no">
+    <div id="app">
+        <div class="reader">
+            <div id='textarea' class="reader-text js-reader-text">
+                <h2 class="reader-text-title">
+                    {{readData.title}}
+                    <p class="author"> —— {{readData.author}}</p>
+                </h2>
 
-            <el-form-item label="选择语言:">
-                <el-select v-model="queryParams.lang" @change="onChange" size="mini">
-                    <el-option v-for="item in voiceData" :key="item.voiceURI" :value="item.lang" :label="item.lang"></el-option>
-                </el-select>
-            </el-form-item>
-
-            <el-form-item label="声音:">
-                <span>{{queryParams.voiceURI}}</span>
-            </el-form-item>
-
-            <el-form-item label="音量:">
-                <el-slider v-model="queryParams.volume" :min="0" :max="1" :step="0.1" show-input size="mini"></el-slider>
-            </el-form-item>
-
-            <el-form-item label="语速:">
-                <el-slider v-model="queryParams.rate" :min="0" :max="10" :step="1" show-input size="mini"></el-slider>
-            </el-form-item>
-
-            <el-form-item label="音调:">
-                <el-slider v-model="queryParams.pitch" :min="0" :max="2" :step="0.2" show-input size="mini"></el-slider>
-            </el-form-item>
-
-            <el-form-item>
-                <el-tooltip class="item" effect="dark" content="功能不稳定，有可能没有声音，刷新几次试试？" placement="top">
-                    <el-button type="primary" @click="onSpeak" size="mini">朗读</el-button>
-                </el-tooltip>
-            </el-form-item>
-        </el-form>
+                <span v-for="(item, index) in readData.texts" class="reader-text-item" @dblclick="onclick"
+                    :class="{speak: index === readData.index, 'js-next': index === (readData.index + 1 >= readData.length ? readData.length - 1 : readData.index + 1)}">{{item}}<br></span>
+            </div>
+            <div class="reader-oprations">
+                <el-button v-if="!reading" @click="onRead" type="primary" size="mini">朗读</el-button>
+                <el-button v-else @click="onStop" size="mini">停止</el-button>
+                
+            </div>
+            <p>
+                
+                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                  设置语音
+                </button>
+              </p>
+              <div class="collapse" id="collapseExample">
+                <div class="card card-body">
+                 <div class="speech-wrapper" element-loading-text="加载语言包..." v-loading="!voiceData.length">
+                <el-form v-model="queryParams" label-width="90px" label-position="left" size="mini">
+  
+        
+                    <el-form-item label="选择语言:">
+                        <el-select v-model="queryParams.lang" @change="onChange" size="mini">
+                            <el-option v-for="item in voiceData" :key="item.voiceURI" :value="item.lang" :label="item.lang"></el-option>
+                        </el-select>
+                    </el-form-item>
+        
+                    <el-form-item label="声音:">
+                        <span>{{queryParams.voiceURI}}</span>
+                    </el-form-item>
+        
+                    <el-form-item label="音量:">
+                        <el-slider v-model="queryParams.volume" :min="0" :max="1" :step="0.1" show-input size="mini"></el-slider>
+                    </el-form-item>
+        
+                    <el-form-item label="语速:">
+                        <el-slider v-model="queryParams.rate" :min="0" :max="10" :step="1" show-input size="mini"></el-slider>
+                    </el-form-item>
+        
+                    <el-form-item label="音调:">
+                        <el-slider v-model="queryParams.pitch" :min="0" :max="2" :step="0.2" show-input size="mini"></el-slider>
+                    </el-form-item>
+        
+            
+                </el-form>
+            </div>
+                </div>
+              </div>
+            
+        </div>
     </div>
-</div>
-    <!-- <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-1b93190375e9ccc259df3a57c1abc0e64599724ae30d7ea4c6877eb615f89387.js"></script> -->
 
-  <script src='https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.4.6/index.js'></script>
-      <script id="rendered-js" >
-new Vue({
-  el: '#app',
-  data() {
-    return {
-      voiceData: typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices(),
-      queryParams: {
-        voiceURI: 'Ting-Ting',
-        lang: 'zh-CN',
-        volume: 1,
-        pitch: 1,
-        rate: 1,
-        text: '大扎好，我西渣渣辉。' },
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/element-ui/2.4.6/index.js'></script>
+    <script id="rendered-js">
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    voiceData: typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices(),
+                    queryParams: {
+                    voiceURI: 'Japanese (Japan)',
+                    lang: 'ja-JP',
+                    volume: 1,
+                    pitch: 1,
+                    rate: 1,
+                    text: '' },
 
-
-      speechInstance: null };
-
-  },
-
-  methods: {
-    onChange(e) {
-      let chosenItem = this.voiceData.filter(item => {
-        return e == item.lang;
-      });
-      this.queryParams.voiceURI = chosenItem[0].voiceURI;
-    },
-
-    onSpeak() {
-      this.speechInstance = new SpeechSynthesisUtterance();
-      Object.keys(this.queryParams).forEach(key => {
-        this.speechInstance[key] = this.queryParams[key];
-      });
-      console.log(this.speechInstance);
-
-      typeof speechSynthesis !== "undefined" && speechSynthesis.speak(this.speechInstance);
-    } },
+                    reading: false,
 
 
-  mounted() {
-    let timer = setInterval(() => {
-      if (!this.voiceData.length) {
-        //获取语言包
-        this.voiceData = typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices();
-      } else {
-        clearInterval(timer);
-      }
-    }, 500);
-  } 
-});
+                    readData: {
+                        title: '小説',
+                        author: '作者: **',
+                        texts: [
+                            '芸能界で長く生きていけるのは、ほんの一部の人だけだそうだ。',
+                            '今月は冠婚葬祭が多かったので、出費がかさんだ。',
+                            'かつて見たこともないほど、美しい海だった。',
+                            '富士山の山頂は、かすんでいてよく見えない。',
+                            'バットは、ボールにかすっただけだった。',
+                            '2 年前の火災は、私にとっては忘れ難い出来事です。',
+                            '1 歳半の娘は、片言だが話をするようになった。',
+                            '正義感が強い彼は、子供の頃から弱い者をかばっていた。',
+                            '救急隊員は、かりの処置だけ行い、医者に任せた。',
+                            'あのチームはがっちりとスクラムを組んで、最後まで戦った。',
+                            'このまま才能がかれていってしまうのだろうか。',
+                            'あの人は体が頑丈で、一度も病気になったことがない。',
+                            'あの男の紳士ぶったきざな振舞いは、みんなに嫌われている。',
+                            '彼女は気立てが優しいので、みんなに好かれている。',
+                            'きたる 10 月 10 日に運動会を行う予定です。',
+                            '勘定をきちんと払う。',
+                            '8 人できっかり 8 等分した。',
+                            'きまぐれに布をつないでいったら、きれいなパッチワークの作品になった。',
+                            ' 子供は成長が早いので、去年の服がもう窮屈だ。',
+                            '初めてパーティーに招待された彼女は、きまり悪そうにモジモジしていた。',
+                            '意見が大きく食い違い、議論にもならなかった。',
+                            '入試に落ちてげっそりする。',
+                            '大男にむこうずねを蹴飛ばされ、痛さにしゃがみこんでしまった。',
+                            '消費者の見地からすると、この決定は妥当なものと言える。',
+                            '済んでしまったことに、いつまでも拘っていてもしようがない。',
+                            '彼は、自分の手柄を誇張して言い過ぎる。',
+                            'こつをつかんでから、商売がうまくいくようになった。',
+                            '何度も失敗しているが、彼は懲りずにまた商売を始めた。',
+                            'レース編みは、根気のいる仕事です。',
+                            '手作りの家具は、細工が精巧で美しい。',
+                            '今の子供は、コマーシャルのおかげで、何でも知っている。',
+                            '部屋中にタバコの煙がこもってしまい、気分が悪い。',
+                            '父のくせは、考え込む時に、額をさすることだ。',
+                            '目を凝らしてのぞいてみると、水面下にきれいな魚が見える。', 'お天気が定まらないので出発できない。',
+                            '近所の付き合いで、商店会の行事に寄付を強いられた。',
+                            '彼女の気持ちを察して、彼は優しい言葉をかけた。',
+                            '売り上げがさっぱりだ。', 'さっぱりした身なりをしている。',
+                            '彼女は下地ができていたので、上達が早かった。',
+                            '今日の公開授業のため、入念な下調べをした。',
+                            'この部屋のインテリアはとてもシックだ。',
+                            '旅行の計画を友人とじっくり相談する。',
+                            '彼女はしつけの厳しい家庭で育った。',
+                            '水をやり忘れたので、花がしなびてしまった。',
+                            '体操選手の体は、とてもしなやかだ。',
+                            '輸出の増加は、円安当時をしのぐ勢いだ',
+                            'この場合は、今までの規則に準じて処罰するしかない。',
+                            '彼女は若いわりに、洋服の好みが渋い。',
+                            '寒さが厳しく、骨身にしみる。',
+                            '彼はいつもパスポートを所持している。',
+                            '彼は、しょっちゅう遅刻している。',
+                            'あやふやな態度で、返事をずるずると引き延ばす。',
+                            'あやふやな態度で、返事をずるずると引き延ばす。',
+                            'あの家の子供たちは、皆健やかに育っている。身も心も健やかでありたい。',
+                            'スカート丈が長いので、5 センチメートルくらい裾を上げた。',
+                            '棚の上に、植木鉢が整然と並んでいる。',
+                            '最近の流行は、すぐに廃れる。',
+                            '彼はだれにでもお世辞を言う。',
+                            'ひ弱だった彼も、苦労してからすっかりたくましくなった。',
+                            '商人は、お客さま第一を建前としている。',
+                            '大きな仕事を一つ片づけたら、気がたるんでしまった。',
+                            '着目すべき点を間違えると、問題が思わぬ方向へ進んでしまう。',
+                            '別れを告げる場面は、涙を誘われる。',
+                            'そんなに最後まで突っ張るのなら、もう勝手にしなさい。',
+                            '彼女は、一日のほとんどを読書に費やす。',
+                            '彼は、束の間の休暇を思いっきり楽しんだ。',
+                            '子供のつぶらな瞳を見ていると、心がなごむ。',
+                            '顔の前で手を叩かれると、人は思わず目をつぶる。', '顔の前で手を叩かれると、人は思わず目をつぶる。',
+                            'がむしゃらに働いてばかりいると、体力がつきてしまう。',
+                            'この料理は、仕上げにパセリを適宜散らすと良いだろう。',
+                            '修学旅行の一行は、5 台のバスを連ねて出発した。',
+                            '人材が集まらないので、計画は最初から出直しになった。',
+                            '犯人逮捕の手がかりを、一般市民からの情報によって得た。',
+                            '手はず通りなら、彼はもう到着している頃だ。',
+                            '司会者の手回しがよかったので、式は順調に進んだ。',
+                            ' 手数は多いが決定打がない。',
+                            '今あなたの手元にある印鑑をお借りしたいのですが。',
+                            '時折彼はこの家にやってくる。',
+                            '話がとぎれて気まずい沈黙の時間が流れた。',
+                            '地震が起こった時、私はとっさにガスの火を消した。',
+                            '朝,夕のラッシュ時は、車の流れが滞る。',
+                            '自分の立場が悪くなると、父はすぐとぼける。',
+                            '自分の立場が悪くなると、父はすぐとぼける。',
+                            '寒い時にはとかく風邪を引きやすい',
+                            '娘はドライな性格だと思われているが、本当はあれで涙もろい。',
+                            '練習がつらくて、途中で投げ出してしまった。',
+                            'ドライな取り扱い',
+                            '素晴らしい作品ばかりだったが、とりわけ彼女の絵は際立っていた。',
+                            '最高級のフランス料理を食べて、舌がとろけそうだった。',
+                            '最高級のフランス料理を食べて、舌がとろけそうだった。',
+                            '英語を学ぶために、アメリカないしイギリスに行きたい。',
+                            '花びんを割ってしまったことを、父には内緒にしておいた。',
+                            '何気なく口にした一言が人を傷つけることもある。',
+                            '熱があるのならなおさらのこと、旅行は中止した方がいい。',
+                            '料理した後、魚の生臭いにおいが消しえない。',
+                            '真夏の太陽に温められて、海の水は生ぬるくなっていた。',
+                            'そんな生温いやり方ではだめだ。',
+                            '経済は、いよいよ不況を抜け出して、好況の局面に入った。',
+                            '日本は大小多数の島から成り立つ。',
+                            '一度お茶を飲んだだけなのに、恋人のようになれなれしい態度をとる。',
+                            '学校を卒業してから、なんだかんだで 20 年になる。',
+                            'あの二人は、姉妹のように顔が似通っている。',
+                            'あの二人は、姉妹のように顔が似通っている。',
+                            '困難にぶつかって逃げ出していては何も解決しない。',
+                            '一生懸命働く父の額には、汗がにじんでいた。',
+                            '彼は、次の時代を担う有能な人材だ。',
+                            '経済は、いよいよ不況を抜け出して、好況の局面に入った。',
+                            'バイオリンの音色にはどこかさびしさがある。',
+                            'ねじれたくぎは使い物にならない。',
+                            '出世をねたんだ人から、彼はいやがらせを受けた。', '',
+                            '結婚 10 年目の記念に、妻は夫にダイヤモンドの指輪をねだった。',
+                            '閉店近くになると、食品は一斉に値引きされて安くなる。', '会議の前に出席者に根回ししておいたので、提案はすんなり通った。',
+                            'うどんは、粉に水と塩を加えてよく練って作る。',
+                            '構想をねる。',
+                            '仕事が性格に合わなかったせいで、ノイローゼになった。',
+                            '期限までに授業料を納入する。',
+                            '釣り糸が切れて、大きな魚を逃してしまった。',
+                            '隣近所が、軒並み泥棒の被害にあった。', '応募書類は、事前に書いてくることが望ましい。',
+                            '応募書類は、事前に書いてくることが望ましい。',
+                            '飛行機が、武器を持った数人の男に乗っ取られた。',
+                            'だまされた彼は、相手のことをののしった。',
+                            'この建物の延べ床面積は 500 平方メートルだ。',
+                            '壁のペンキがはげたので塗り直した。',
+                            '傷ついた友人を励ました。',
+                            '彼のあいまいな態度に、彼女は漠然とした疑いをもった。',
+                            '今だから白状するが、実は昔、悪いことをしたことがある。',
+                            '強盗は、身ぐるみはいですべてを持ち去った。',
+                            'はかない夢に終わる。',
+                            '事態を解決するために、あなたのお知恵を拝借したい。',
+                            '事件の背後に、大物政治家の影がちらつく。',
+                            '犯罪の背景には、少年時代の貧しい環境がある。',
+                            'このコートは防水加工がしてあって水をはじく。',
+                            '運転手がスピードを出すのではらはらした。',
+                            '桜の花びらがはらはらと舞う。', '新たな期待にこころが弾む。',
+                            '5 階まで駆け上がったら息が弾んだ。',
+                            '破損したガラス窓から冷たい風が吹き込んできた。',
+                            '霧が発生したので、高速道路で事故が多発した。',
+                            'そんなこと知らなかった。初耳だ。',
+                            '冒険を求めて世界の果てまで旅行した。',
+                            '夏の暑さに、すっかりばててしまった。',
+                            'あのチームが負けたのは、はなはだ残念だ。',
+                            '若い時は華々しく活躍したが、最近は目立たない。',
+                            '氷の割れ目が阻み、冒険家は、それ以上進めなかった。',
+                            '兄は最近口ひげを生やしている。',
+                            'ついに彼も、この土地に根を生やした。',
+                            'なぐられて、目の回りがはれた。',
+                            '安くてうまいラーメンが評判になって、お店が繁盛している。',
+                            'みんなで分けたら半端がでたので、ほしい人に余計にあげた。',
+                            '半端な態度はよくない。',
+                            '磁石の同極は反発しあう。',
+                            '人の世話をすることが、ひいては自分のためにもなる。',
+                            '最近太ったので、甘い物をひかえている。',
+                            '戦車部隊が次の攻撃に備えて控えている。',
+                            '彼の成功は、日頃の努力が実を結んだものだ。',
+                            '二人は誰にも気付かれず、ひそかに愛し合っていた。',
+                            '干しシイタケは、水に浸して、戻してから料理する。',
+                            '彼は、ただひたすら小説を書き続けた。',
+                            '猫を無理に抱こうとしたら、つめで腕をひっかかれた。',
+                            '暑かったので、汗をびっしょりかいた。',
+                            '彼は高校生だが、大人の選手に匹敵する実力を持っている。',
+                            'この仕事が終ったら、一息入れてコーヒーでも飲もう。',
+                            '一息に仕上げる。',
+                            '彼女は美人な上に、人柄もいいので、みんなに好かれている',
+                            '彼は忍耐一筋の苦労人なので、失敗してもくじけない。',
+                            '逃亡中の犯人は、昼間は人目につくので、夜行動した。',
+                            '退院の日取りは、今週中に決まる。',
+                            '猫が、日向で気持ちよさそうに眠っている。',
+                            '日向でほこりを立てる。',
+                            'そのアパートは、建ってから 30 年にもなるので、壁にひびが入っている。',
+                            '友情にひびが入った。',
+                            '新婚の彼を周りの女子社員がいつも冷やかしている。',
+                            'ひょっとしたら雨が降るかもしれないから、傘を持って行こう。',
+                            '平たい皿に料理を美しく盛り付ける。',
+                            '平たい言葉で述べる。',
+                            '不意に呼び止められて、びっくりした。',
+                            '社交ダンスが、最近ブームになっている。',
+                            '靴がぶかぶかだったので、走ったら脱げてしまった。',
+                            '夕食後、お腹がふくれたので、眠くなった。',
+                            'ホテルでのパーティーには、その場にふさわしい服装で出かける。',
+                            '夜遅く一人でぶらついていたら、不審に思われて、警察に通報された。',
+                            '心配事があって、食欲不振になった。',
+                            '脳死の判定基準が公表され、物議をかもしている。',
+                            '災害にあった国に、食料や医薬品などの物資を援助する。',
+                            'みんなと同じように働いているのに、私だけ給料が不当に低い。',
+                            '教科書の記述は、普遍的なものが望ましい。',
+                            '理想もよいが、常に現実を踏まえて計画を立てるべきだ。',
+                            '表面だけの議論ではなく、もう一歩踏み込んだ意見がほしい。',
+                            '徹夜した次の日は疲れてふらふらだった。',
+                            '暇なので、町をぶらぶらした。',
+                            '定年退職した父は、家でぶらぶらしている。',
+                            'お年寄りが困っていたら、知らないふりをせずに助けよう。',
+                            '声をかけられて振り返ると、学生時代の友人だった。',
+                            '容疑者が犯人ではなかったことが判明し、捜査は振り出しに戻った。',
+                            '振り出しの日付。',
+                            '小犬は、雨にぬれて全身を震わせていた。',
+                            '旅行中パスポートを紛失し、予約した飛行機に乗れなかった。',
+                            'ハリウッド映画は、資金をふんだんに使って作られるので、豪華で面白い。',
+                            '暑い日に、クーラーもないところで、1 時間も待たされて閉口した。',
+                            '彼は問い詰められて閉口した。',
+                            'あの人の自慢話にはへきえきする。',
+                            '街から遠く隔たった農村に、彼女は暮らしている。',
+                            'みんなに迷惑をかけたのだから、弁解するより、ます謝るのが先だ。',
+                            '正確な統計資料を作るため、新しい計算方式を採用した。',
+                            '地震で家が全壊し、しばらくぼう然としていた。',
+                            '突然お客さんが来たので、荷物を押し入れに放り込んだ。',
+                            '疲れると、勉強を放り出してテレビを見る。',
+                            '年を取って頭がぼけてしまった。',
+                            '梅の蕾が綻び始める。',
+                            '古いシャツの縫い目がほころびていた。',
+                            '彼の自殺は、遺書もなく、発作的なものだったらしい。',
+                            'ボランティアの連絡組織が発足した。',
+                            '固く結んであったので、ひもがなかなかほどけなかった。',
+                            '救急車が到着する前に、応急処置を施した。',
+                            'そのホテルは、湖のほとりにあって景色が良かった。',
+                            '彼は、給料が安いと、いつもぼやいている。',
+                            '霧のため、景色がぼやけてよく見えない。',
+                            '千年続いた王国は、隣国との戦争に敗れ滅びた。',
+                            '画家の弟子になって、油絵を本格的に学んだ。',
+                            '本音を聞き出そうとしたが、彼はなかなか明かそうとしなかった。',
+                            '上海で本場の中華料理を味わう。',
+                            '前置きは抜きにして、すぐに本題に入ろう。',
+                            '前もって地図で調べておいたので、道に迷わないですんだ。',
+                            '生活は夫の給料で賄っている。',
+                            '最近は似たような名前の会社が多いので、紛らわしい。',
+                            'たいくつな時、音楽を聞いていると、気が紛れる。',
+                            '初めてのところなので、何がどこにあるのかわからず、まごついた。',
+                            '初めてのところなので、何がどこにあるのかわからず、まごついた。',
+                            '食器といってもここまで美しく仕上げてあると、これはまさしく芸術だ。',
+                            'ランチにコーヒーをつけると、100 円増しになります。',
+                            '講師は冗談を交えて面白く話したので、難しい講義も退屈しなかった。',
+                            '言葉を交える。',
+                            '健康な人でさえ、この暑さはこたえる。まして病人は、なおさらだ。',
+                            'その小説は、テレビや雑誌などのマスコミに取り上げられ、売れ行きが伸びた。',
+                            '登山ルートは、富山県と長野県にまたがっている。',
+                            '待ち望んでいた友人との再会が、やっと実現した。',
+                            '学生の国籍はまちまちで、中国人もいればアメリカ人もいる。',
+                            'びっくりして、まばたきもせずに相手の顔を見つめた。',
+                            '脳の血管が詰まり、手足がまひして動かない。',
+                            'リンゴを切らないで、丸ごとかじる。',
+                            '朝からずっと釣りをしているが、まるっきり釣れない。',
+                            '赤ん坊は、まるまると太っていた。',
+                            '大きな紙を丸めて筒に入れる。',
+                            '提案は満場一致で可決された。',
+                            '諸条件を見合わせた上で決める。',
+                            '数字の間違いを見落とし、会議で指摘されて恥をかいた。',
+                            'スイカは、夏の味覚として親しまれている。',
+                            '子供の前で、夫婦げんかをするのは見苦しい。',
+                            '雨は今日いっぱい降り続く見込みだ。',
+                            'たまねぎをみじん切りにする。',
+                            '服装はみすばらしいが、彼は有名な学者だ。',
+                            '新しい車を買ったので、みんなに見せびらかしている。',
+                            '大きなコップになみなみとビールを満たす。',
+                            '風が吹いてきて、私の髪を乱した。',
+                            '身近に知っている人がいないと、何かあった時に不安だ。',
+                            '日本とアメリカは、経済的に密接な関係にある。',
+                            '建設会社に、建築費の見積りを出させる。',
+                            '建物は今週中に完成する見通した。',
+                            '見通しのきく場所。',
+                            'おまえの考えていることは何もかもお見通しだ。',
+                            '彼は、少年時代に両親を失った不幸な身の上を語った。',
+                            'せっかくのいい機会を見逃した。',
+                            '身の回りの世話をする。',
+                            '帰宅する時間を見計らって、友人を訪ねた。',
+                            '彼の家は丘の上に建っているので、見晴らしがいい。',
+                            '外国語が分らなくても、身振り手振りで何とか通じる。',
+                            '仕事に未練はあったが、出産を機に会社を辞めることにした。',
+                            '大火事の被害にあった町は、見渡す限り焼け野原だった。',
+                            'いつも無口なのに、今日はうれしいことがあったのか、よくしゃべる。',
+                            'タラの干物をむしって食べる。',
+                            'いくら働いても、生活が楽にならないので、空しい。',
+                            'むやみに山の木を切ると、洪水の原因になる。',
+                            '成績にむらがある。',
+                            '駅まで遠いと、通勤には無論、買い物にも不便だ。',
+                            '発音が不明瞭で、何を言っているのかよく聞き取れなかった。',
+                            '月が変わったので、カレンダーをめくる。',
+                            '投手力の充実が、このチームに優勝をもたらした。',
+                            '第二次世界大戦後、日本はめざましい発展を遂げた。',
+                            '父は厳しい目つきで、いたずらをした息子をにらんだ。',
+                            '工事が遅れていて、完成のめどがつかない。',
+                            '太陽が朝から照りつけて、温度計の目盛りが 30 度を超えた。',
+                            'その部屋は大通りに面しているので、車の音がうるさい。',
+                            '先生の推薦で会社に入社したのだから、頑張らないと先生の面目が立たない。',
+                            '事故が多い交差点に信号をつけるように、警察に申し入れた。',
+                            '急いている人は申し出てください。',
+                            '卒業論文は、申し分ないほどよくできています。',
+                            '小さな子が、プールでおぼれそうになってもがいている。',
+                            '競馬でひともうけしようというもくろみがはずれて、大損をした。',
+                            '解答用紙には、鉛筆もしくはシャープペンシルで記入すること。',
+                            '町は、昨夜 UFO が空に浮かんでいたという噂で持ち切りだ',
+                            'その件については、もっか検討中なのでもう少しお待ちください。',
+                            '最近は忙しいので、もっぱら外食だ。',
+                            '外国からのお客様を、日本料理でもてなした。',
+                            'お金にもならない研究を、一生懸命やるなんて物好きな人だ。',
+                            '一泊だけではものたりない気がして、もう一日泊まることにした。',
+                            'もうけたお金の配分をめぐって、仲間同士でもめた。',
+                            '運転中眠気を催したので、車を止めてしばらく眠った。',
+                            '雨で地盤がもろくなっているので、崖崩れに注意が必要だ。',
+                            '小船が大波をもろに受けて、沈んでしまった。',
+                            '今日はやけにお客が多くて、閉店前に売切れてしまった。',
+                            '革製と比べて、ビニール製の靴は安っぽく見える。',
+                            '革製と比べて、ビニール製の靴は安っぽく見える。',
+                            '話すとややこしいので、図に書いて説明します。',
+                            ' 一度やると決めたことはやりとおす。',
+                            '何度もやりなおす。',
+                            'アパートを借りるのにお金が必要なので、親に融通してもらった。',
+                            '融通のきかない人。',
+                            '将来有望な新人がチームに加わった。',
+                            'あまりの痛みに、彼の顔がゆがんだ。', '',
+                            '演奏のすばらしさに、心を揺さぶられた。', '幹を揺さぶって実を落とす。',
+                            'うがいをすると同時に、口をゆすぐ。', '忙しい現代人には、ゆとりが欠けている。',
+                            '風で木の葉が揺らいでいる。', '靴のひもが緩んだので、結び直す。',
+                            '仕事が一段落して気が緩む。', '水たまりがあったのでよけて通った。', '授業中、よそ見をしていて先生にしかられた。',
+                            '避難所は住民たちでいっぱいで、足をのぼす余地もないほどだった。', 'テストの前日は、夜更けまで勉強していた。',
+                            '友達とお酒を飲んで夜更かししてしまい、朝起きられなかった。', 'あのおとなしい彼が怒るなんて、よほどのことがあったに違いない。',
+                            '子供は疲れていたのか、いすの背によりかかって寝てしまった。', '子供は疲れていたのか、いすの背によりかかって寝てしまった。',
+                            'スープの鍋をかきまわすと、いいにおいがした。', '事故現場には、おびただしい量の血が流れていた。',
+                            '畑が雨で潤った。', '彼は全員をまとめるリーダーの器ではない。'],
+
+                        index: -1
+                    },
+
+                    speechInstance: null
+                };
+
+            },
+
+            methods: {
+                speak() {
+                    if (this.speechInstance) {
+                        this.readData.index++;
+                        // console.log(this.readData.texts[this.readData.index]);
+                        this.speechInstance.text = this.readData.texts[this.readData.index];
+                        typeof speechSynthesis !== "undefined" && speechSynthesis.speak(this.speechInstance);
+
+                        this.bindEvents();
+                    }
+                },
+
+                bindEvents() {
+                    this.speechInstance.onend = e => {
+                        if (this.readData.index === this.readData.texts.length - 1) {
+                            this.onStop();
+                            return;
+                        }
+                        this.scroll();
+                        this.speak();
+                    };
+
+                    this.speechInstance.onstart = () => {
+                        this.reading = true;
+                    };
+                },
+
+                scroll() {
+                    this.$reader.querySelector('.js-next').scrollIntoViewIfNeeded({
+                        block: 'center',
+                        behavior: 'smooth'
+                    });
+
+                },
+
+                onRead() {
+                    this.onStop();
+
+                    this.speechInstance = new SpeechSynthesisUtterance();
+                    Object.keys(this.queryParams).forEach(key => {
+                        this.speechInstance[key] = this.queryParams[key];
+                    });
+
+                    this.speak();
+                },
+
+                onStop() {
+                    speechSynthesis.cancel();
+                    this.speechInstance = null;
+                    this.readData.index = -1;
+                    this.reading = false;
+                    this.$reader.scrollTo({ top: 0 });
+                },
+
+
+                onChange(e) {
+                    let chosenItem = this.voiceData.filter(item => {
+                        return e == item.lang;
+                    });
+                    this.queryParams.voiceURI = chosenItem[0].voiceURI;
+                                
+                },
+                onclick(e){
+                    speechSynthesis.cancel();
+                    this.speechInstance = null;
+                    this.readData.index = -1;
+                    this.reading = false;
+
+                    this.speechInstance = new SpeechSynthesisUtterance();
+                    Object.keys(this.queryParams).forEach(key => {
+                        this.speechInstance[key] = this.queryParams[key];
+                    });
+                    console.log(e.srcElement.innerText)
+                    if (this.speechInstance) {
+                        // this.readData.index++;
+                        // console.log(this.readData.texts[this.readData.index]);
+                        this.speechInstance.text = e.srcElement.innerText
+                        typeof speechSynthesis !== "undefined" && speechSynthesis.speak(this.speechInstance);
+
+                        // this.bindEvents();
+                    }
+                }
+
+            },          
+       
+            mounted() {
+                this.$reader = document.querySelector('.js-reader-text');
+                let timer = setInterval(() => {
+                if (!this.voiceData.length) {
+                    //获取语言包
+                    this.voiceData = typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices();
+                } else {
+                    clearInterval(timer);
+                }
+                }, 500);
+            } 
+            
+        });
 //# sourceURL=pen.js
     </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"
+        crossorigin="anonymous"></script>
 
-  
 
 </body>
 
 </html>
- 
