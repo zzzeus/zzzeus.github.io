@@ -41,8 +41,8 @@
             </el-form-item>
 
             <el-form-item label="选择语言:">
-                <el-select v-model="queryParams.lang" @change="onChange" size="mini">
-                    <el-option v-for="item in voiceData" :key="item.voiceURI" :value="item.lang" :label="item.lang"></el-option>
+                <el-select v-model="queryParams.voiceURI" @change="onChange" size="mini">
+                    <el-option v-for="item in voiceData" :key="item.voiceURI" :value="item.voiceURI" :label="item.voiceURI"></el-option>
                 </el-select>
             </el-form-item>
 
@@ -81,6 +81,7 @@ new Vue({
     return {
       voiceData: typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices(),
       queryParams: {
+
         voiceURI: 'Ting-Ting',
         lang: 'zh-CN',
         volume: 1,
@@ -96,7 +97,7 @@ new Vue({
   methods: {
     onChange(e) {
       let chosenItem = this.voiceData.filter(item => {
-        return e == item.lang;
+        return e == item.voiceURI;
       });
       this.queryParams.voiceURI = chosenItem[0].voiceURI;
     },
